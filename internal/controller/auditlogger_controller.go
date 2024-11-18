@@ -128,6 +128,8 @@ type auditlog struct {
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+//+kubebuilder:rbac:groups="machineconfiguration.openshift.io",resources=machineconfigpools,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch;get
 
 func (r *AuditLoggerReconciler) getResource() (client.Object, error) {
 	AuditLoggerKind := monitoringv1alpha1.GroupVersion.WithKind(r.Kind)
