@@ -21,10 +21,7 @@ kubectl/oc explain auditlogger.monitoring.spark.co.nz
 Sample deployment
 1. Create the CRDs
 ```sh
-oc create -f monitoring-wo-webhooks/config/crd/bases/monitoring.spark.co.nz_containerscans.yaml
-oc create -f monitoring-wo-webhooks/config/crd/bases/monitoring.spark.co.nz_portscans.yaml
-oc create -f monitoring-wo-webhooks/config/crd/bases/monitoring.spark.co.nz_vmscans.yaml
-oc create -f monitoring-wo-webhooks/config/crd/bases/monitoring.spark.co.nz_metallbscans.yaml
+oc create -f monitoring-wo-webhooks/config/crd/bases/monitoring.spark.co.nz_auditlogger.yaml
 ```
 2. Create the service account
 ```sh
