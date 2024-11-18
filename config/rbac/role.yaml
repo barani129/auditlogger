@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - monitoring.spark.co.nz
+  resources:
+  - auditloggers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.spark.co.nz
+  resources:
+  - auditloggers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.spark.co.nz
+  resources:
+  - auditloggers/status
+  verbs:
+  - get
+  - patch
+  - update

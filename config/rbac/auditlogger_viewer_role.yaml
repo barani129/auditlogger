@@ -1,0 +1,27 @@
+# permissions for end users to view auditloggers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: auditlogger-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: auditlogger
+    app.kubernetes.io/part-of: auditlogger
+    app.kubernetes.io/managed-by: kustomize
+  name: auditlogger-viewer-role
+rules:
+- apiGroups:
+  - monitoring.spark.co.nz
+  resources:
+  - auditloggers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitoring.spark.co.nz
+  resources:
+  - auditloggers/status
+  verbs:
+  - get
