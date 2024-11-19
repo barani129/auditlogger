@@ -39,8 +39,7 @@ type AuditLoggerSpec struct {
 	DbInfo DBInfo `json:"dbInfo"`
 
 	// Image for the host pod, if not set openshift/tools:latest will be used by default
-	// +optional
-	PodInfo PodInfo `json:"podImage,omitempty"`
+	PodInfo PodInfo `json:"podInfo,omitempty"`
 
 	// Set suspend to true to disable monitoring the custom resource
 	// +optional

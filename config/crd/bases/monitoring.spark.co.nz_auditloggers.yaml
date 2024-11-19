@@ -108,7 +108,7 @@ spec:
               notifyExternal:
                 description: To notify the external alerting system
                 type: boolean
-              podImage:
+              podInfo:
                 description: Image for the host pod, if not set openshift/tools:latest
                   will be used by default
                 properties:

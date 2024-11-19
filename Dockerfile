@@ -1,20 +1,27 @@
 # Build the manager binary
-FROM golang:1.21 AS builder
+FROM golang:1.22 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
-WORKDIR /workspace
+# Create non-root user
+RUN groupadd golanguser
+RUN useradd -ms /bin/bash golanguser -g golanguser
+USER golanguser
+WORKDIR /home/golanguser
+
 # Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY go.sum go.sum
+COPY --chown=golanguser:golanguser go.mod go.mod
+COPY --chown=golanguser:golanguser go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
 # Copy the go source
-COPY cmd/main.go cmd/main.go
-COPY api/ api/
-COPY internal/controller/ internal/controller/
+COPY --chown=golanguser:golanguser cmd/main.go cmd/main.go
+COPY --chown=golanguser:golanguser api/ api/
+COPY --chown=golanguser:golanguser internal/controller/ internal/controller/
+COPY --chown=golanguser:golanguser internal/auditlogger/ internal/auditlogger/
+COPY --chown=golanguser:golanguser internal/auditlogger/util/ internal/auditlogger/util/
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
@@ -25,9 +32,16 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o ma
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
-WORKDIR /
-COPY --from=builder /workspace/manager .
+FROM alpine:latest
+RUN apk add --no-cache bash
+RUN apk add --no-cache mailx
+
+# Create non-root user 
+RUN addgroup -g 65532 golanguser
+RUN addgroup -S golanggroup && adduser -S golanguser -u 65532 -G golanguser
+RUN chmod 777 /home/golanguser
+WORKDIR /home/golanguser
+COPY --from=builder /home/golanguser/manager .
 USER 65532:65532
 
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["/home/golanguser/manager"]
