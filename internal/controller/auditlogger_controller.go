@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/lib/pq"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -286,25 +287,26 @@ func (r *AuditLoggerReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		switch auditLogger.(type) {
 		case *monitoringv1alpha1.AuditLogger:
-			secretName.Namespace = r.ClusterResourceNamespace
+			dbsecretName.Namespace = r.ClusterResourceNamespace
 		default:
 			log.Log.Error(fmt.Errorf("unexpected monitoring group cr type: %s", auditLogger), "not retrying")
 			return ctrl.Result{}, nil
 		}
 
-		var secret corev1.Secret
+		var dbsecret corev1.Secret
 		var dbusername []byte
 		var dbpassword []byte
 		var dbname []byte
 
-		if err := r.Get(ctx, dbsecretName, &secret); err != nil {
-			return ctrl.Result{}, fmt.Errorf("%w, secret name: %s, reason: %v", errGetAuthSecret, secretName, err)
+		if err := r.Get(ctx, dbsecretName, &dbsecret); err != nil {
+			return ctrl.Result{}, fmt.Errorf("%w, secret name: %s, reason: %v", errGetAuthSecret, dbsecretName, err)
 		}
-		dbusername = secret.Data["POSTGRESQL_USER"]
-		dbpassword = secret.Data["POSTGRESQL_PASSWORD"]
-		dbname = secret.Data["POSTGRESQL_DATABASE"]
+		dbusername = dbsecret.Data["POSTGRESQL_USER"]
+		dbpassword = dbsecret.Data["POSTGRESQL_PASSWORD"]
+		dbname = dbsecret.Data["POSTGRESQL_DATABASE"]
 
-		dsn = fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", string(dbusername), string(dbpassword), string(dbname), *spec.DbInfo.DatabaseSvcName)
+		dsn = fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", string(dbusername), string(dbpassword), *spec.DbInfo.DatabaseSvcName, string(dbname))
+		fmt.Println("dsn", dsn)
 	}
 	flag.StringVar(&cfg.db.dsn, "db-dsn", dsn, "postgres DSN")
 	if spec.DbInfo.MaxOpenConn != nil {
@@ -322,7 +324,7 @@ func (r *AuditLoggerReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	} else {
 		flag.DurationVar(&cfg.db.maxIdleTime, "db-max-idel-time", time.Minute*30, "postgres max idel time")
 	}
-
+	flag.Parse()
 	var image string
 	var serviceAccount string
 	if spec.PodInfo.Image != nil {
@@ -377,8 +379,9 @@ func (r *AuditLoggerReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					}
 				}
 			}
+		} else {
+			log.Log.Info("Database connection established")
 		}
-		log.Log.Info("Database connection established")
 		// Step2: Create the pod in all master nodes
 		// 2a retrieve active nodes
 		nodes, fnodes, err := util.RetrieveMasterNodes(*clientset)
@@ -402,13 +405,15 @@ func (r *AuditLoggerReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		} else if err == nil && updating {
 			log.Log.Info("master machineconfigpool is being updated, exiting and requeing")
 			return ctrl.Result{RequeueAfter: defaultHealthCheckInterval}, nil
+		} else if err == nil && !updating {
+			log.Log.Info("master machineconfigpool is not being updated, proceeding further")
 		}
 
 		var pods []string
 		for _, node := range nodes {
 			podName, err := util.CreatePod(*clientset, node, image, serviceAccount, r.ClusterResourceNamespace)
 			if err != nil {
-				log.Log.Info(fmt.Sprintf("unable to create the debug pod in node %s", node))
+				log.Log.Info(fmt.Sprintf("unable to create the debug pod in node %s with err", node, err.Error()))
 			}
 			if podName != "" {
 				pods = append(pods, podName)

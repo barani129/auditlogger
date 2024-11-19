@@ -5,6 +5,7 @@ go 1.22.0
 toolchain go1.23.1
 
 require (
+	github.com/lib/pq v1.10.9
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/openshift/api v0.0.0-20241114175301-1d987ad446cf
